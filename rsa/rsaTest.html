@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>forge-test</title>
+  <style>
+    #app {
+      padding-bottom: 200px;
+    }
+
+    #keys-container,
+    #crypt-container {
+      display: flex;
+    }
+
+    .keys-buttons {
+      width: 100px;
+      text-align: center;
+    }
+
+    .keys-buttons button {
+      width: 80%;
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      flex: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div id="keys-container">
+      <textarea v-model="publicKeyString" rows="20"></textarea>
+      <div class="keys-buttons">
+        <button @click="generateKeyPair">生成密钥</button>
+        <div>耗时：{{ timeCost }} ms</div>
+      </div>
+      <textarea v-model="privateKeyString" rows="20"></textarea>
+    </div>
+
+    <div id="crypt-container">
+      <textarea v-model="rawData" rows="10"></textarea>
+      <div class="keys-buttons">
+        <button @click="encrypt">加密</button>
+        <button @click="decrypt">解密</button>
+        <div>耗时：{{ timeCost2 }} ms</div>
+      </div>
+      <textarea v-model="encryptedData" rows="10"></textarea>
+    </div>
+
+    <div>
+      <!-- <h4>加密: 字符转义（可能包含中文等） =>>> {{ cryptoAlgorithm }} 算法加密 =>>> 加密结果 Base64</h4>
+      <h4>解密: 解 Base64 =>>> {{ cryptoAlgorithm }} 算法解密 =>>> 字符解转义（可能包含中文等）</h4> -->
+      <h4>生成密钥：<br>
+        算法: PRIMEINC <br>
+        位数: 2048位 <br>
+        优先调用浏览器 native standard 方法 (部分浏览器支持，需要 https)<br>
+        如 native standard 调用失败，使用 pure JavaScript 方法，使用 webworker 生成素数，会使用 workerScript: './prime.worker.min.js'
+        所有，prime.worker.min.js 必须加入文件中
+      </h4>
+    </div>
+
+    <h2>性能测试</h2>
+    <div>
+      <button @click="generateKeyPairTest">生成密钥测试</button>
+      <input type="text" v-model="generateTestTimes">次
+      <div>成功次数：{{ generateperformance.successTimes}}</div>
+      <div>min: {{generateperformance.min}}ms</div>
+      <div>max: {{generateperformance.max}}ms</div>
+      <div>average: {{generateperformance.average}}ms</div>
+    </div>
+
+
+  </div>
+
+  <script src="https://unpkg.com/vue@next"></script>
+  <script src="./rsaCrypt.min.js"></script>
+  <script src="./keygen.min.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init();</script> -->
+
+  <script>
+    const App = {
+      data() {
+        return {
+          keypair: null,
+          publicKeyString: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmcngtssL5ZKlnXGn8dmfm57VnBjkjLlheRyPbMwO/+iA+ZH3oxUG0da2GPpUgqTp6gK48zNS2SCDTVSVD9d5Mz+rC/s9kECbhxwEG3fZ76majVYkbiVH896ZHG75CTuPcSvyeHO3rmUGo011MaJlxFo8TcCzXJI11h/Li+eLiWWnPNDvrkNOu77Jd48QolO7D6gMLQ/nvwqTNu00mEpmGAdrklVEpeYFpHqgC3L4RoCKP0XRkcO7PNGGsgYjsede6Nz6fF7ajWMSBTRCZyxWQ2n56IKRvyZA3RAMTPR2lAQgl0AtdpY3q95SHh00Rf9th3iVEjq7ROsEKo8USF8tfQIDAQAB',
+          privateKeyString: 'MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCZyeC2ywvlkqWdcafx2Z+bntWcGOSMuWF5HI9szA7/6ID5kfejFQbR1rYY+lSCpOnqArjzM1LZIINNVJUP13kzP6sL+z2QQJuHHAQbd9nvqZqNViRuJUfz3pkcbvkJO49xK/J4c7euZQajTXUxomXEWjxNwLNckjXWH8uL54uJZac80O+uQ067vsl3jxCiU7sPqAwtD+e/CpM27TSYSmYYB2uSVUSl5gWkeqALcvhGgIo/RdGRw7s80YayBiOx517o3Pp8XtqNYxIFNEJnLFZDafnogpG/JkDdEAxM9HaUBCCXQC12ljer3lIeHTRF/22HeJUSOrtE6wQqjxRIXy19AgMBAAECggEAJwFK21HYbJurIamn/PFDSAcbCoJNxVtnW35g6ik/TKy9uY7KDjTRC/u3J9KmCJSnN1EFc7l6s9NJOh3PyLrP5K2rRlisnp+kUrpKWGUng1+y8VH932nZPAMjNlD3HN5cXUnWL7K5zaOV8Wk95h7YTNrOHLJZS4tR2EMsLwnFHE2lUvQZshBklxOKuBJFUwdREjaHBP9CyQutVny0yWeCZgdNvVvcOwz/2XJQE318DxaTy3oEbxRIMHQUViV5gTiXcZW/pfzIVuvFpZJMzJuM3S4jgarXgjVZiK+es8Djg87qxH/MtWD3Qfyx6W852c/nhjjEai852k2BNmR0Lm07AQKBgQDL5+l4WwJ/J5/+39KJc9qOQDU6uKRT1oiNlgjNarGq2r+zOxjhFwQZPC+YSaYIf/PXePkaD0m7CW5Z+ji3ujLeUG7TOKxdwXbtgiVoJZ6BvUlDLNximDGk0MkgOwU3X0M6tQ4g3JqdPDEe7+tTQzD3H/tEAdllumOP5GDdHtujYQKBgQDBFCKguKdfjtH5FGjwcdQiKO+kVhsvu85oCkRdOijUKm7/NQ0dAZpi1hoH4h6CO57L8ICHMcNKk9tapB9cpeRb9+4+ADPCwPR7OzJM82cO0mkHEazhi1vNVNxis0jc36OwNCcA2Pqjej4Yv/c97SARleeLe1ULGT9Kka7Gx+jbnQKBgC9dDD83rKnKk4CJjwb8kTzPr02XjBwpTgjNW/gTG3fbXgIM7SeDyCDweQG/wcBhsEtRv1MNUAwREb/2vmv25U/8kPGhTXBtuulKfNPnQR1T0Yu4BO0l+woUsVM6QmjtSNl/Kuv5MjTpwWM1SY1KozoUBLJ0V4IovG21F8blHxGhAoGAVsA7RsdwvGipQya+d7pNPAP0mHvvvyS8+tYSHWkySxG9yYEGoU/FFD9qdrxMROuQz8UBmrzrKCkC19kCFlibIA9nxgfFOe4EaxIP6a87UNeNRRXV/Yjl+H32f4paZJM/Mr5b/+99vdIA8JHf/rz6OayG2o7RiSkQ3OpUAxBzOakCgYBNJus0MoSbKQ0V2/wp4qRiZ2YDIF6Wa3LECs8shgpw5xwWHkOIHFb779knt9OPAf5kQJvO/YDCM9lPDb6l2oFb33eO8zI0C3AiPxLc/fHL9YZ7zMR6Q8528Ml+QFLmS4lUues5IHGagVW3mAw9yh8vc12GBlTeHimVFdpXj4H6LQ==',
+          timeCost: '',
+
+
+          rawData: '',
+          encryptedData: '',
+          timeCost2: '',
+
+          // 'RAW'
+          // 'RSA-OAEP'
+          // 'RSAES-PKCS1-V1_5'
+          cryptoAlgorithm: 'RSAES-PKCS1-V1_5',
+
+          generateTestTimes: 100,
+          generateperformance: {}
+        }
+      },
+      methods: {
+        async generateKeyPair() {
+          let time0 = new Date().valueOf()
+
+          var rsaCoder = new JSEncrypt()
+
+          let keypair = await rsaCoder.generateKeyPair()
+          this.publicKeyString = keypair.publicKeyString
+          this.privateKeyString = keypair.privateKeyString
+          this.timeCost = new Date().valueOf() - time0
+        },
+
+        encrypt() {
+          if (!this.rawData || !this.publicKeyString) {
+            return
+          }
+          let time0 = new Date().valueOf()
+
+          var rsaCoder = new JSEncrypt()
+
+          let encrypted = rsaCoder.rsaEncrypt(this.rawData, this.publicKeyString)
+          this.timeCost2 = new Date().valueOf() - time0
+          this.encryptedData = encrypted
+        },
+
+        decrypt() {
+          if (!this.encryptedData || !this.privateKeyString) {
+            return
+          }
+          let time0 = new Date().valueOf()
+          var rsaCoder = new JSEncrypt()
+          let decrypted = rsaCoder.rsaDecrypt(this.encryptedData, this.privateKeyString)
+          this.timeCost2 = new Date().valueOf() - time0
+          this.rawData = decrypted
+        },
+        
+        async generateKeyPairTest() {
+          var rsaCoder = new JSEncrypt()
+          let min = 0
+          max = 0
+          times = 0
+          amountTime = 0
+          successTimes = 0
+          average = 0
+
+          for (let i = 0; i < this.generateTestTimes; ++i) {
+            let time0 = new Date().valueOf()
+            times++
+            try {
+              let keypair = await rsaCoder.generateKeyPair()
+              successTimes++
+              let timeCost = new Date().valueOf() - time0
+              if (i == 0) {
+                min = timeCost
+                max = timeCost
+                amountTime = timeCost
+              }
+              if (timeCost < min) {
+                min = timeCost
+              }
+              if (timeCost > max) {
+                max = timeCost
+              }
+              amountTime += timeCost
+
+              this.generateperformance = {
+                min,
+                max,
+                successTimes,
+                average: amountTime / successTimes
+              }
+
+            } catch (error) {
+              console.log('generate error');
+            }
+          }
+
+
+        }
+      }
+      ,
+      created() {
+        window.vueThis = this
+      }
+    }
+    Vue.createApp(App).mount('#app')
+  </script>
+</body>
+
+</html>

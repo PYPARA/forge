@@ -58,6 +58,13 @@ const outputs = [
   //  filenameBase: 'forge.pbkdf2-sha256',
   //  libraryTarget: 'umd'
   //}
+  // Example: PBKDF2 + sha256, without the sha1 default
+  ,
+  {
+    entry: ['./lib/pki.js', './lib/forge.js'],
+    filenameBase: 'keygen',
+    libraryTarget: 'umd'
+  }
 ];
 
 outputs.forEach(info => {
@@ -86,10 +93,10 @@ outputs.forEach(info => {
       libraryTarget: info.libraryTarget || 'umd'
     }
   });
-  if(info.library === null) {
+  if (info.library === null) {
     delete bundle.output.library;
   }
-  if(info.libraryTarget === null) {
+  if (info.libraryTarget === null) {
     delete bundle.output.libraryTarget;
   }
 
@@ -118,10 +125,10 @@ outputs.forEach(info => {
       */
     ]
   });
-  if(info.library === null) {
+  if (info.library === null) {
     delete minify.output.library;
   }
-  if(info.libraryTarget === null) {
+  if (info.libraryTarget === null) {
     delete minify.output.libraryTarget;
   }
 
