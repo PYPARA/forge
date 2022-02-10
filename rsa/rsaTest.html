@@ -75,12 +75,34 @@
       <div>average: {{generateperformance.average}}ms</div>
     </div>
 
+    <h1>加解密接口联调测试</h1>
+    <h2>加密测试</h2>
+    <button @click="axiosGetPublicKey">获取公钥</button><br>
+    <textarea v-model="axiosPublicKey" rows="10" style="width: 300px;"></textarea><br>
+    <button @click="axiosEncrypt">公钥加密提交</button><br>
+    证件<input v-model="cardNo" style="width: 300px;"><br>
+    地址<input v-model="address" style="width: 300px;"><br>
+    <h2>接口返回</h2>
+    <div>证件：{{ testDecryptResult.cardNo }}</div>
+    <div>地址：{{ testDecryptResult.address }}</div>
 
+    <h2>解密测试</h2>
+    <button @click="axiosDecrypt">解密测试</button><br>
+    证件2<input v-model="cardNo2" style="width: 300px;"><br>
+    地址2<input v-model="address2" style="width: 300px;"><br>
+    前端生成密钥<br>
+    <textarea v-model="decryptPublicKeyString" rows="20"></textarea>
+    <textarea v-model="decryptPrivateKeyString" rows="20"></textarea><br>
+    接口返回解密<br>
+    <div>证件：{{ axiosDecryptResult.cardNoDecrypt }}</div>
+    <div>地址：{{ axiosDecryptResult.addressDecrypt }}</div>
   </div>
 
   <script src="https://unpkg.com/vue@next"></script>
   <script src="./rsaCrypt.min.js"></script>
   <script src="./keygen.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
   <!-- <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init();</script> -->
 
@@ -89,8 +111,8 @@
       data() {
         return {
           keypair: null,
-          publicKeyString: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmcngtssL5ZKlnXGn8dmfm57VnBjkjLlheRyPbMwO/+iA+ZH3oxUG0da2GPpUgqTp6gK48zNS2SCDTVSVD9d5Mz+rC/s9kECbhxwEG3fZ76majVYkbiVH896ZHG75CTuPcSvyeHO3rmUGo011MaJlxFo8TcCzXJI11h/Li+eLiWWnPNDvrkNOu77Jd48QolO7D6gMLQ/nvwqTNu00mEpmGAdrklVEpeYFpHqgC3L4RoCKP0XRkcO7PNGGsgYjsede6Nz6fF7ajWMSBTRCZyxWQ2n56IKRvyZA3RAMTPR2lAQgl0AtdpY3q95SHh00Rf9th3iVEjq7ROsEKo8USF8tfQIDAQAB',
-          privateKeyString: 'MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCZyeC2ywvlkqWdcafx2Z+bntWcGOSMuWF5HI9szA7/6ID5kfejFQbR1rYY+lSCpOnqArjzM1LZIINNVJUP13kzP6sL+z2QQJuHHAQbd9nvqZqNViRuJUfz3pkcbvkJO49xK/J4c7euZQajTXUxomXEWjxNwLNckjXWH8uL54uJZac80O+uQ067vsl3jxCiU7sPqAwtD+e/CpM27TSYSmYYB2uSVUSl5gWkeqALcvhGgIo/RdGRw7s80YayBiOx517o3Pp8XtqNYxIFNEJnLFZDafnogpG/JkDdEAxM9HaUBCCXQC12ljer3lIeHTRF/22HeJUSOrtE6wQqjxRIXy19AgMBAAECggEAJwFK21HYbJurIamn/PFDSAcbCoJNxVtnW35g6ik/TKy9uY7KDjTRC/u3J9KmCJSnN1EFc7l6s9NJOh3PyLrP5K2rRlisnp+kUrpKWGUng1+y8VH932nZPAMjNlD3HN5cXUnWL7K5zaOV8Wk95h7YTNrOHLJZS4tR2EMsLwnFHE2lUvQZshBklxOKuBJFUwdREjaHBP9CyQutVny0yWeCZgdNvVvcOwz/2XJQE318DxaTy3oEbxRIMHQUViV5gTiXcZW/pfzIVuvFpZJMzJuM3S4jgarXgjVZiK+es8Djg87qxH/MtWD3Qfyx6W852c/nhjjEai852k2BNmR0Lm07AQKBgQDL5+l4WwJ/J5/+39KJc9qOQDU6uKRT1oiNlgjNarGq2r+zOxjhFwQZPC+YSaYIf/PXePkaD0m7CW5Z+ji3ujLeUG7TOKxdwXbtgiVoJZ6BvUlDLNximDGk0MkgOwU3X0M6tQ4g3JqdPDEe7+tTQzD3H/tEAdllumOP5GDdHtujYQKBgQDBFCKguKdfjtH5FGjwcdQiKO+kVhsvu85oCkRdOijUKm7/NQ0dAZpi1hoH4h6CO57L8ICHMcNKk9tapB9cpeRb9+4+ADPCwPR7OzJM82cO0mkHEazhi1vNVNxis0jc36OwNCcA2Pqjej4Yv/c97SARleeLe1ULGT9Kka7Gx+jbnQKBgC9dDD83rKnKk4CJjwb8kTzPr02XjBwpTgjNW/gTG3fbXgIM7SeDyCDweQG/wcBhsEtRv1MNUAwREb/2vmv25U/8kPGhTXBtuulKfNPnQR1T0Yu4BO0l+woUsVM6QmjtSNl/Kuv5MjTpwWM1SY1KozoUBLJ0V4IovG21F8blHxGhAoGAVsA7RsdwvGipQya+d7pNPAP0mHvvvyS8+tYSHWkySxG9yYEGoU/FFD9qdrxMROuQz8UBmrzrKCkC19kCFlibIA9nxgfFOe4EaxIP6a87UNeNRRXV/Yjl+H32f4paZJM/Mr5b/+99vdIA8JHf/rz6OayG2o7RiSkQ3OpUAxBzOakCgYBNJus0MoSbKQ0V2/wp4qRiZ2YDIF6Wa3LECs8shgpw5xwWHkOIHFb779knt9OPAf5kQJvO/YDCM9lPDb6l2oFb33eO8zI0C3AiPxLc/fHL9YZ7zMR6Q8528Ml+QFLmS4lUues5IHGagVW3mAw9yh8vc12GBlTeHimVFdpXj4H6LQ==',
+          publicKeyString: '',
+          privateKeyString: '',
           timeCost: '',
 
 
@@ -104,7 +126,18 @@
           cryptoAlgorithm: 'RSAES-PKCS1-V1_5',
 
           generateTestTimes: 100,
-          generateperformance: {}
+          generateperformance: {},
+
+          axiosPublicKey: '',
+          cardNo: '',
+          address: '',
+          testDecryptResult: {},
+
+          decryptPublicKeyString: '',
+          decryptPrivateKeyString: '',
+          cardNo2: '',
+          address2: '',
+          axiosDecryptResult: {}
         }
       },
       methods: {
@@ -142,7 +175,7 @@
           this.timeCost2 = new Date().valueOf() - time0
           this.rawData = decrypted
         },
-        
+
         async generateKeyPairTest() {
           var rsaCoder = new JSEncrypt()
           let min = 0
@@ -185,6 +218,63 @@
           }
 
 
+        },
+
+        axiosGetPublicKey() {
+          axios.post('http://10.3.5.59:8080/healthcloud-inquiry-user-api/rsa/getRsaPublicKey', {
+
+          })
+            .then(function (response) {
+              console.log(response);
+              vueThis.axiosPublicKey = response.data.data
+            })
+            .catch(function (error) {
+              console.log(error);
+            });
+        },
+
+        axiosEncrypt() {
+          if (!this.cardNo || !this.address) {
+            return
+          }
+          var rsaCoder = new JSEncrypt()
+          axios.post('http://10.3.5.59:8080/healthcloud-inquiry-user-api/rsa/testDecrypt', {
+            cardNo: rsaCoder.rsaEncrypt(this.cardNo, this.axiosPublicKey),
+            address: rsaCoder.rsaEncrypt(this.address, this.axiosPublicKey)
+          })
+            .then(function (response) {
+              console.log(response);
+              vueThis.testDecryptResult = response.data.data
+            })
+            .catch(function (error) {
+              console.log(error);
+            });
+
+        },
+
+        async axiosDecrypt() {
+          if(!this.cardNo2 || !this.address2) {
+            return
+          }
+          var rsaCoder = new JSEncrypt()
+          let keypair = await rsaCoder.generateKeyPair()
+          this.decryptPublicKeyString = keypair.publicKeyString
+          this.decryptPrivateKeyString = keypair.privateKeyString
+
+          axios.post('http://10.3.5.59:8080/healthcloud-inquiry-user-api/rsa/testEncryption', {
+            cardNo: this.cardNo2, 
+            address: this.address2, 
+            publicKey: this.decryptPublicKeyString
+          })
+            .then(function (response) {
+              console.log(response);
+              vueThis.axiosDecryptResult = response.data.data
+              vueThis.axiosDecryptResult.cardNoDecrypt = rsaCoder.rsaDecrypt(vueThis.axiosDecryptResult.cardNo, vueThis.decryptPrivateKeyString)
+              vueThis.axiosDecryptResult.addressDecrypt = rsaCoder.rsaDecrypt(vueThis.axiosDecryptResult.address, vueThis.decryptPrivateKeyString)
+            })
+            .catch(function (error) {
+              console.log(error);
+            });
         }
       }
       ,
