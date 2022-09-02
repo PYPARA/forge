@@ -223,7 +223,7 @@
         },
 
         axiosGetPublicKey() {
-          axios.post('http://10.3.5.59:8080/healthcloud-inquiry-user-api/rsa/getRsaPublicKey', {
+          axios.post('...', {
 
           })
             .then(function (response) {
@@ -240,7 +240,7 @@
             return
           }
           var rsaCoder = new JSEncrypt()
-          axios.post('http://10.3.5.59:8080/healthcloud-inquiry-user-api/rsa/testDecrypt', {
+          axios.post('...', {
             cardNo: rsaCoder.rsaEncrypt(this.cardNo, this.axiosPublicKey),
             address: rsaCoder.rsaEncrypt(this.address, this.axiosPublicKey)
           })
@@ -263,7 +263,7 @@
           this.decryptPublicKeyString = keypair.publicKeyString
           this.decryptPrivateKeyString = keypair.privateKeyString
 
-          axios.post('http://10.3.5.59:8080/healthcloud-inquiry-user-api/rsa/testEncryption', {
+          axios.post('...', {
             cardNo: this.cardNo2, 
             address: this.address2, 
             publicKey: this.decryptPublicKeyString

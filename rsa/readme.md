@@ -1,3 +1,13 @@
+## update
+直接使用 jsencrypt , 他本身支持生成密钥
+```js
+var crypt = new JSEncrypt({ default_key_size: 2048 }); 
+var keypair = {
+  PublicKey: crypt.getPublicKey(), 
+  PrivateKey: crypt.getPrivateKey()
+};
+```
+
 ## log
 使用 github上 jsencrypt 和 forge 库
 原版 jsencrypt 不兼容 IE
